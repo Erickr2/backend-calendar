@@ -1,5 +1,6 @@
 //este es un backend server
 const express = require('express');
+const { dbConnection } = require('./database/config');
 require('dotenv').config(); //me ayuda a acceder a mis variables de entorno env
 
 console.log(process.env);
@@ -7,7 +8,10 @@ console.log(process.env);
 //creo el server 
 const app = express();
 
-//directorio publico
+//DB, funcion que se conecta ala bd
+dbConnection();
+
+//defino un directorio publico
 app.use( express.static('public')); //establezco el directorio publico(es el path) //use es un midleware( funcion que se ejecuta cuando se hace una peticion al server)
 
 //lectura y parseo del body

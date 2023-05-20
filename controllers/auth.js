@@ -1,56 +1,99 @@
 //controladores 
+
 const { response } = require('express');
-const { validationResult } = require('express-validator'); //resultado de la validacion
+const bcrypt = require('bcryptjs');
+const Usuario = require('../models/usuario'); //exporto mi modelo
 
 
 //funcion para crear usuarios, el response es para que me de la ayuda del intellisence, req solicita, res responde
-const crearUsuario = (req, res = response) => {
+const crearUsuario = async (req, res = response) => {
 
     //extraigo lo que necesito del body de mi request, de esta manera leo lo que hay en mi body
-    const {name, email, password} = req.body;
+    const { email, password } = req.body;
 
-    //manejo de errores, los extraemos de validationResult y le mandamos el req ya que vamos a esperar que responde de esa req
-    const errors = validationResult( req );
+    try {
 
-    //si el arreglo de rrores no esta vacion, es decir si hay errores; devuelve una respuesta y en los errores manda el mapeo de los mismos
-    if( !errors.isEmpty()){
-        return res.status(400).json({
+        //reviso si hay un usuario con el email que recibo
+        let usuario = await Usuario.findOne({ email });
+
+        if (usuario) {
+            return res.status(400).json({
+                ok: false,
+                mssg: `Ya existe un usuario con el correo ${email}`
+            })
+        }
+
+        //instancia de mi modelo
+        usuario = Usuario(req.body);//le mando la info de mi request a mi modelo
+
+        //encriptar contraseña 
+        const salt = bcrypt.genSaltSync();//numero de vueltas por defecto 10
+        usuario.password = bcrypt.hashSync(password, salt);//le mando la contra y mi n de vueltas
+        //espero a que guarde en bd
+        await usuario.save()
+
+        //si todo sale bien mando un 201 y la data
+        res.status(201).json({
+            ok: true,
+            uid: usuario.id,
+            name: usuario.name
+        })
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
             ok: false,
-            errors: errors.mapped()
+            mssg: 'Hubo un error con el servidor, por favor hable con el Admin'
         })
     }
 
-    //si todo sale bien mando un 201 y la data
-    res.status(201).json({
-        ok: true,
-        mssg: 'registro',
-        name,
-        email, 
-        password
-    })
+
 }
 
+const loginUsuario = async(req, res = response) => {
 
-const loginUsuario = (req, res = response) => {
+    const { email, password } = req.body;
 
-    const { email, password} = req.body;
-    const errors = validationResult( req );
+    try {
 
-    if( !errors.isEmpty()){
-        return res.status(400).json({
+        const usuario = await Usuario.findOne({ email });
+
+        if ( !usuario ) {
+            return res.status(400).json({
+                ok: false,
+                mssg: `No existe un usuario con el email ${email}`
+            })
+        }
+
+        //confirmar passwords
+        const validPass = bcrypt.compareSync( password, usuario.password);// comparo la contra que recibo y la que hay en la bd del usuario que recibo
+
+        if( !validPass ){
+            return res.status(400).json({
+                ok: false,
+                mssg: 'contraseña incorrecta'
+            })
+        }
+
+        //generar JWT
+
+        res.status(200).json({
+            ok: true,
+            uid: usuario.id,
+            name: usuario.name
+        });
+
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
             ok: false,
-            errors: errors.mapped()
+            mssg: 'Hubo un error con el servidor, por favor hable con el Admin'
         })
     }
 
-    res.status(200).json({
-        ok: true,
-        mssg: 'login',
-        email,
-        password
-    })
+    
 }
-
 
 const revalidarToken = (req, res) => {
     res.json({
@@ -66,3 +109,24 @@ module.exports = ({
     loginUsuario,
     revalidarToken
 })
+
+
+
+
+
+
+
+/* 
+
+//manejo de errores, los extraemos de validationResult y le mandamos el req ya que vamos a esperar que responde de esa req
+    const errors = validationResult( req );
+
+    //si el arreglo de rrores no esta vacion, es decir si hay errores; devuelve una respuesta y en los errores manda el mapeo de los mismos
+    if( !errors.isEmpty()){
+        return res.status(400).json({
+            ok: false,
+            errors: errors.mapped()
+        })
+    }
+
+*/
