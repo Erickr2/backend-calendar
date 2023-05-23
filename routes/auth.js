@@ -9,6 +9,7 @@ const router = Router();
 const { crearUsuario, loginUsuario, revalidarToken } = require('../controllers/auth');
 const { check } = require("express-validator");
 const { validarCampos } = require("../middlewares/validar-campos");
+const { validarJWT } = require("../middlewares/validar-jwt");
 
 
 //endpoints mando la ruta, validaciones y la funcion que quiero que ejecute 
@@ -32,7 +33,8 @@ router.post(
     ], 
     loginUsuario); //como es post recibe informacion; en este caso correo y contraseña
 
-router.get('/renew', revalidarToken);
+    
+router.get('/renew', validarJWT ,revalidarToken);
 
 
 

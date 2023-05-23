@@ -3,6 +3,7 @@
 const { response } = require('express');
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/usuario'); //exporto mi modelo
+const { generarJWT } = require('../helpers/jwt');
 
 
 //funcion para crear usuarios, el response es para que me de la ayuda del intellisence, req solicita, res responde
@@ -31,12 +32,15 @@ const crearUsuario = async (req, res = response) => {
         usuario.password = bcrypt.hashSync(password, salt);//le mando la contra y mi n de vueltas
         //espero a que guarde en bd
         await usuario.save()
+        //genero mi token, mando los datos y lo guardo en la constante token
+        const token = await generarJWT( usuario.id, usuario.name);
 
-        //si todo sale bien mando un 201 y la data
+        //si todo sale bien mando un 201 y la data junto con el token
         res.status(201).json({
             ok: true,
             uid: usuario.id,
-            name: usuario.name
+            name: usuario.name,
+            token
         })
 
     } catch (error) {
@@ -76,11 +80,13 @@ const loginUsuario = async(req, res = response) => {
         }
 
         //generar JWT
+        const token = await generarJWT( usuario.id, usuario.name);
 
         res.status(200).json({
             ok: true,
             uid: usuario.id,
-            name: usuario.name
+            name: usuario.name,
+            token
         });
 
 
@@ -95,10 +101,16 @@ const loginUsuario = async(req, res = response) => {
     
 }
 
-const revalidarToken = (req, res) => {
+//con esta funcion verifico si el token esta activo y si no genero uno nuevo, lo hace mi middleware
+const revalidarToken = async(req, res) => {
+
+    const { uid, name } = req; 
+    //genero un nuevo token
+    const token = await generarJWT( uid, name );
+
     res.json({
         ok: true,
-        mssg: 'renew'
+        token
     })
 }
 
