@@ -21,7 +21,7 @@ app.use(express.json()) //las peticiones que tengan formato json las proceso aqu
 
 //Rutas
 app.use('/api/auth', require('./routes/auth')); //todo lo que exporta este archivo(./routes/auth) esta disponible en la ruta(/api/auth)
-//TODO CRUD: eventos
+app.use('/api/events', require('./routes/events'));
 
 
 
